@@ -1,0 +1,8 @@
+# Chrome profile folders hold live Google session cookies. They must never be
+# committed, and they are a few hundred MB each once Chrome has run.
+profiles/
+logs/
+screenshots/
+state/
+*.json.tmp
+__pycache__/

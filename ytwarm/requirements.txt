@@ -1,0 +1,10 @@
+# ytwarm needs exactly one thing.
+#
+# The GUI and everything else is standard library on purpose - the same choice
+# gallery.py makes - so there is no second environment to keep alive.
+#
+# `pip install playwright` is enough here: the browser is your OWN installed
+# Google Chrome (channel="chrome"), not a downloaded Chromium. If Playwright
+# still complains about a missing driver, run `playwright install chromium`
+# once - the bundled Chromium is unused but the install step sets the driver up.
+playwright>=1.44

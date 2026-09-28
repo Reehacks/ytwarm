@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ytwarm</title>
+<style>
+  :root {
+    --bg:#15171c; --panel:#1d2027; --line:#2c313b; --ink:#e6e9ef; --dim:#9aa3b2;
+    --accent:#5aa9ff; --ok:#4ec9a0; --warn:#e6b455; --bad:#ff6b6b; --head:58px;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:14px/1.5 ui-sans-serif,system-ui,"Segoe UI",sans-serif; }
+  header { display:flex; gap:10px; align-items:center; padding:9px 14px; height:var(--head);
+           background:var(--panel); border-bottom:1px solid var(--line);
+           position:sticky; top:0; z-index:30; }
+  h1 { font-size:14px; margin:0 8px 0 0; font-weight:650; white-space:nowrap; }
+  h2 { font-size:13px; margin:0 0 8px; font-weight:650; color:var(--dim);
+       text-transform:uppercase; letter-spacing:.05em; }
+  select, input, textarea, button {
+    font:inherit; color:var(--ink); background:#252932; border:1px solid var(--line);
+    border-radius:6px; padding:6px 9px; }
+  input[type=checkbox] { width:15px; height:15px; accent-color:var(--accent); }
+  textarea { width:100%; resize:vertical; line-height:1.45; font-size:13px; }
+  button { cursor:pointer; }
+  button:hover:not(:disabled) { border-color:var(--accent); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  button.primary { background:var(--accent); color:#0b1017; border-color:var(--accent);
+                   font-weight:600; }
+  button.go { background:var(--ok); color:#07130f; border-color:var(--ok); font-weight:600; }
+  button.small { padding:4px 8px; font-size:12px; }
+  button.danger:hover { border-color:var(--bad); color:var(--bad); }
+  .spacer { flex:1; }
+  .muted { color:var(--dim); }
+  .tabs { display:flex; gap:4px; }
+  .tabs button { background:transparent; border-color:transparent; color:var(--dim); }
+  .tabs button.on { background:#252932; border-color:var(--line); color:var(--ink); }
+  .dot { width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .wrap { display:grid; grid-template-columns:minmax(0,1fr) 420px; gap:14px;
+          padding:14px; align-items:start; }
+  @media (max-width:1150px){ .wrap { grid-template-columns:1fr; } }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px;
+          padding:12px 13px; margin-bottom:11px; }
+  .card.busy { border-color:var(--accent); }
+  .row { display:flex; gap:9px; align-items:center; flex-wrap:wrap; }
+  .grid2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:9px; }
+  .pid { font-weight:650; }
+  .tag { font-size:11px; padding:1px 7px; border:1px solid var(--line); border-radius:20px;
+         color:var(--dim); }
+  .kw { font-size:12px; color:var(--dim); margin-top:6px; line-height:1.7; }
+  .kw span { border:1px solid var(--line); border-radius:12px; padding:1px 7px;
+             margin-right:4px; white-space:nowrap; }
+  table { width:100%; border-collapse:collapse; font-size:12px; margin-top:8px; }
+  td, th { text-align:left; padding:3px 6px 3px 0; color:var(--dim); font-weight:400; }
+  #log { background:#0f1115; border:1px solid var(--line); border-radius:10px;
+         padding:10px; height:calc(100vh - var(--head) - 120px); overflow:auto;
+         font:12px/1.55 ui-monospace,Consolas,monospace; white-space:pre-wrap; }
+  label.f { display:block; font-size:12px; color:var(--dim); margin-bottom:3px; }
+  .f input, .f select { width:100%; }
+  .banner { background:#2a2116; border:1px solid var(--warn); border-radius:10px;
+            padding:11px 13px; margin-bottom:11px; }
+  .err { color:var(--bad); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ytwarm</h1>
+  <div class="tabs">
+    <button id="tab-profiles" class="on" onclick="tab('profiles')">Profiles</button>
+    <button id="tab-config" onclick="tab('config')">Settings</button>
+  </div>
+  <span class="spacer"></span>
+  <span id="status" class="muted"></span>
+  <button id="btn-all" class="go" onclick="post('/api/warm-all',{})">Warm all</button>
+  <button id="btn-stop" class="danger" onclick="post('/api/stop',{})">Stop</button>
+</header>
+
+<div class="wrap">
+  <div>
+    <div id="setup-banner" class="banner" style="display:none">
+      <b>A plain Chrome window is open for sign-in.</b>
+      <div class="muted" style="margin:4px 0 0">
+        1. Sign in to this channel's Google account, and pass 2FA.<br>
+        2. Accept the cookie and consent screens YouTube shows.<br>
+        3. <b>Close the Chrome window.</b> That is what saves the session to disk.
+        <div style="margin-top:6px">
+          It is a normal Chrome on purpose - Google refuses to sign in inside an
+          automated one. The warming sessions reuse the cookies it leaves behind.
+        </div>
+      </div>
+    </div>
+    <div class="card" id="sched">
+      <div class="row">
+        <span class="dot" id="sched-dot" style="background:var(--line)"></span>
+        <b>Daily schedule</b>
+        <span id="sched-txt" class="muted">checking...</span>
+        <span class="spacer"></span>
+        <button class="small" id="sched-btn" onclick="toggleSchedule()" style="display:none"></button>
+      </div>
+    </div>
+    <div id="panel-profiles"></div>
+    <div id="panel-config" style="display:none"></div>
+  </div>
+  <div>
+    <h2>Log</h2>
+    <div id="log" class="muted">nothing yet</div>
+  </div>
+</div>
+
+<script>
+let S = null, TAB = "profiles", EDIT = null, MSG = "";
+
+function tab(which) {
+  TAB = which;
+  for (const t of ["profiles", "config"]) {
+    document.getElementById("tab-" + t).classList.toggle("on", t === which);
+    document.getElementById("panel-" + t).style.display = t === which ? "" : "none";
+  }
+  if (which === "config") { EDIT = JSON.parse(JSON.stringify(S.config)); drawConfig(); }
+}
+
+async function post(path, body) {
+  const r = await fetch(path, {method:"POST", headers:{"Content-Type":"application/json"},
+                              body: JSON.stringify(body)});
+  const got = await r.json();
+  if (got.error) { MSG = got.error; alert(got.error); }
+  refresh();
+  return got;
+}
+
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>]/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+
+function drawProfiles() {
+  const running = S.job.running, busy = S.job.profile;
+  let h = "";
+  if (S.error) h += `<div class="card err">Config problem: ${esc(S.error)}</div>`;
+  for (const p of S.profiles) {
+    const last = p.runs[0];
+    const colour = {ok:"var(--ok)", setup:"var(--ok)", blocked:"var(--bad)",
+                    signed_out:"var(--warn)", error:"var(--bad)"}[last && last.result]
+                   || "var(--line)";
+    h += `<div class="card ${running && busy === p.profile_id ? "busy" : ""}">
+      <div class="row">
+        <span class="dot" style="background:${p.signed_in_once ? "var(--ok)" : "var(--warn)"}"
+              title="${p.signed_in_once ? "profile folder has a session" : "never set up"}"></span>
+        <span class="pid">${esc(p.label || p.profile_id)}</span>
+        <span class="muted">${esc(p.profile_id)}</span>
+        ${p.niche ? `<span class="tag">niche ${esc(p.niche)}</span>` : ""}
+        ${p.channel_name
+          ? `<span class="tag" title="the session stops unless this channel is the active one">YT: ${esc(p.channel_name)}</span>`
+          : `<span class="tag" style="color:var(--warn)" title="no channel set - nothing checks which channel this profile warms">YT: not set</span>`}
+        ${p.proxy ? `<span class="tag">proxy</span>` : ""}
+        ${p.enabled ? "" : `<span class="tag">off</span>`}
+        <span class="spacer"></span>
+        <span class="muted">${p.sessions_today}/${p.budget.sessions_per_day || "-"} today</span>
+        <button class="small" ${running ? "disabled" : ""}
+                onclick="post('/api/setup',{profile_id:'${p.profile_id}'})">Set up</button>
+        <button class="small primary" ${running ? "disabled" : ""}
+                onclick="post('/api/warm',{profile_id:'${p.profile_id}',force:true})">Warm now</button>
+      </div>
+      <div class="kw">${p.keywords.map(k => `<span>${esc(k)}</span>`).join("")}</div>
+      <table><tr><th>when</th><th>result</th><th>actions</th><th>watched</th>
+             <th>shorts</th><th>mins</th><th>note</th></tr>
+      ${p.runs.map(r => `<tr>
+        <td>${esc(r.at)}</td>
+        <td style="color:${colour}">${esc(r.result)}</td>
+        <td>${r.actions ?? ""}</td><td>${r.watched ? Math.round(r.watched) + "s" : ""}</td>
+        <td>${r.shorts || ""}</td><td>${r.minutes ?? ""}</td>
+        <td>${esc(r.note || "")}</td></tr>`).join("") ||
+        `<tr><td colspan="7">no sessions yet</td></tr>`}
+      </table></div>`;
+  }
+  document.getElementById("panel-profiles").innerHTML = h;
+}
+
+function fld(label, value, path, type) {
+  const v = type === "checkbox" ? (value ? "checked" : "") : `value="${esc(value)}"`;
+  return `<label class="f">${label}
+    <input type="${type || "text"}" ${v} oninput="setv('${path}', this)"
+           onchange="setv('${path}', this)"></label>`;
+}
+
+function setv(path, el) {
+  const keys = path.split(".");
+  let node = EDIT;
+  for (const k of keys.slice(0, -1)) {
+    const key = isNaN(k) ? k : Number(k);
+    // proxy is null until something is typed into it, so the branch has to be
+    // created on the way down rather than assumed.
+    if (node[key] == null) node[key] = {};
+    node = node[key];
+  }
+  const last = keys[keys.length - 1];
+  let val = el.type === "checkbox" ? el.checked : el.value;
+  if (el.type === "number") val = val === "" ? null : Number(val);
+  node[isNaN(last) ? last : Number(last)] = val;
+}
+
+function setkw(niche, el) {
+  EDIT.niches[niche].keywords = el.value.split("\n").map(s => s.trim()).filter(Boolean);
+}
+
+function drawConfig() {
+  const g = EDIT, niches = Object.keys(g.niches || {});
+  let h = `<div class="card"><h2>Session shape</h2><div class="grid2">
+    ${fld("Watch a video for min (s)", (g.watch_seconds||[40,120])[0], "watch_seconds.0", "number")}
+    ${fld("max (s)", (g.watch_seconds||[40,120])[1], "watch_seconds.1", "number")}
+    ${fld("Shorts per session min", (g.shorts_per_session||[4,8])[0], "shorts_per_session.0", "number")}
+    ${fld("max", (g.shorts_per_session||[4,8])[1], "shorts_per_session.1", "number")}
+    ${fld("Micro-interaction chance (0-1)", g.interaction_chance ?? 0.12, "interaction_chance", "number")}
+    ${fld("Scheduled run skips a day (0-1)", g.skip_day_chance ?? 0.2, "skip_day_chance", "number")}
+    ${fld("Gap between profiles min (min)", (g.gap_minutes||[4,20])[0], "gap_minutes.0", "number")}
+    ${fld("max (min)", (g.gap_minutes||[4,20])[1], "gap_minutes.1", "number")}
+    ${fld("Chrome channel", g.chrome_channel || "chrome", "chrome_channel")}
+    </div>
+    <div class="row" style="margin-top:9px">
+      <label class="row" style="gap:6px"><input type="checkbox" ${g.mute_audio ? "checked" : ""}
+        onchange="setv('mute_audio', this)"> mute audio</label>
+      <label class="row" style="gap:6px"
+             title="Puts the window off the edge of the desktop. Not headless and not minimised - both of those stop the watch counting.">
+        <input type="checkbox" ${g.hide_window ? "checked" : ""}
+        onchange="setv('hide_window', this)"> keep the Chrome window off-screen</label>
+    </div></div>`;
+
+  h += `<div class="card"><h2>Niches</h2>`;
+  for (const n of niches) {
+    h += `<div style="margin-bottom:12px">
+      <div class="row">
+        <b>${esc(n)}</b>
+        <input style="flex:1" value="${esc(g.niches[n].label || "")}"
+               oninput="setv('niches.${n}.label', this)" placeholder="label">
+        <button class="small danger" onclick="delNiche('${n}')">remove</button>
+      </div>
+      <textarea rows="5" placeholder="one search keyword per line"
+        oninput="setkw('${n}', this)">${esc((g.niches[n].keywords||[]).join("\n"))}</textarea>
+    </div>`;
+  }
+  h += `<button class="small" onclick="addNiche()">+ niche</button></div>`;
+
+  h += `<div class="card"><h2>Profiles</h2>`;
+  (g.profiles || []).forEach((p, i) => {
+    h += `<div style="border-top:1px solid var(--line); padding-top:10px; margin-top:10px">
+      <div class="row">
+        <b>${esc(p.profile_id)}</b>
+        <label class="row" style="gap:6px"><input type="checkbox" ${p.enabled !== false ? "checked" : ""}
+          onchange="setv('profiles.${i}.enabled', this)"> enabled</label>
+        <span class="spacer"></span>
+        <button class="small danger" onclick="delProfile(${i})">remove</button>
+      </div>
+      <div class="grid2" style="margin-top:8px">
+        ${fld("profile_id", p.profile_id, `profiles.${i}.profile_id`)}
+        ${fld("label", p.label || "", `profiles.${i}.label`)}
+        ${fld("YouTube channel name (exactly as YouTube shows it)",
+              p.channel_name || "", `profiles.${i}.channel_name`)}
+        <label class="f">niche
+          <select onchange="setv('profiles.${i}.niche', this)">
+            ${niches.map(n => `<option ${p.niche === n ? "selected" : ""}>${esc(n)}</option>`).join("")}
+          </select></label>
+        ${fld("user_data_dir", p.user_data_dir || "", `profiles.${i}.user_data_dir`)}
+        ${fld("proxy server (blank = direct)", (p.proxy||{}).server || "", `profiles.${i}.proxy.server`)}
+        ${fld("proxy username", (p.proxy||{}).username || "", `profiles.${i}.proxy.username`)}
+        ${fld("proxy password", (p.proxy||{}).password || "", `profiles.${i}.proxy.password`)}
+        ${fld("min minutes", p.daily_budget.min_minutes, `profiles.${i}.daily_budget.min_minutes`, "number")}
+        ${fld("max minutes", p.daily_budget.max_minutes, `profiles.${i}.daily_budget.max_minutes`, "number")}
+        ${fld("min actions", p.daily_budget.min_actions, `profiles.${i}.daily_budget.min_actions`, "number")}
+        ${fld("max actions", p.daily_budget.max_actions, `profiles.${i}.daily_budget.max_actions`, "number")}
+        ${fld("sessions per day", p.daily_budget.sessions_per_day, `profiles.${i}.daily_budget.sessions_per_day`, "number")}
+      </div></div>`;
+  });
+  h += `<div class="row" style="margin-top:12px">
+      <button class="small" onclick="addProfile()">+ profile</button>
+      <span class="spacer"></span>
+      <span id="cfgmsg" class="muted"></span>
+      <button class="primary" onclick="saveConfig()">Save settings</button>
+    </div></div>`;
+  document.getElementById("panel-config").innerHTML = h;
+}
+
+function addNiche() {
+  const id = prompt("Short niche id, e.g. D");
+  if (!id) return;
+  EDIT.niches[id.trim()] = {label:"", keywords:[]};
+  drawConfig();
+}
+function delNiche(n) {
+  if ((EDIT.profiles||[]).some(p => p.niche === n)) {
+    return alert("A profile still uses niche " + n + ". Move it first.");
+  }
+  delete EDIT.niches[n]; drawConfig();
+}
+function addProfile() {
+  const id = prompt("New profile_id, e.g. ch5_travel");
+  if (!id) return;
+  EDIT.profiles.push({profile_id:id.trim(), label:"", niche:Object.keys(EDIT.niches)[0]||"",
+    user_data_dir:"profiles/" + id.trim(), enabled:true, proxy:null,
+    daily_budget:{min_minutes:8, max_minutes:16, min_actions:3, max_actions:5,
+                  sessions_per_day:2}});
+  drawConfig();
+}
+function delProfile(i) {
+  if (!confirm("Remove " + EDIT.profiles[i].profile_id + " from the config? "
+               + "Its Chrome profile folder on disk is left alone.")) return;
+  EDIT.profiles.splice(i, 1); drawConfig();
+}
+
+async function saveConfig() {
+  // An empty proxy server means direct, so the whole proxy object goes away -
+  // a {"server": ""} would be refused by the validator.
+  for (const p of EDIT.profiles) {
+    if (!p.proxy || !String(p.proxy.server || "").trim()) p.proxy = null;
+  }
+  const got = await post("/api/config", {config: EDIT});
+  document.getElementById("cfgmsg").textContent = got.ok ? "saved" : (got.error || "failed");
+  document.getElementById("cfgmsg").className = got.ok ? "muted" : "err";
+}
+
+async function refresh() {
+  const r = await fetch("/api/state");
+  S = await r.json();
+  const j = S.job;
+  document.getElementById("status").textContent = j.running
+    ? `running ${j.kind}${j.profile ? " - " + j.profile : ""}`
+    : (j.code === null ? "idle" : `idle - last exit ${j.code}`);
+  document.getElementById("btn-all").disabled = j.running;
+  document.getElementById("btn-stop").disabled = !j.running;
+  document.getElementById("setup-banner").style.display =
+    (j.running && j.kind === "setup") ? "" : "none";
+  const log = document.getElementById("log");
+  const atBottom = log.scrollTop + log.clientHeight >= log.scrollHeight - 30;
+  log.textContent = (j.log || []).join("\n") || "nothing yet";
+  if (atBottom) log.scrollTop = log.scrollHeight;
+  if (TAB === "profiles") drawProfiles();
+}
+
+// The schedule is read on load and after a button press only. It changes when
+// something here changes it, and a PowerShell launch on every poll would cost
+// more than the rest of the page put together.
+let SCHED = null;
+
+async function drawSchedule(data) {
+  SCHED = data;
+  const dot = document.getElementById("sched-dot");
+  const txt = document.getElementById("sched-txt");
+  const btn = document.getElementById("sched-btn");
+  if (!data || !data.installed) {
+    dot.style.background = "var(--line)";
+    txt.innerHTML = 'not installed - run <code>"Warming Schedule.bat" install</code> '
+                  + 'in ' + '<span class="muted">the repo folder</span>';
+    btn.style.display = "none";
+    return;
+  }
+  dot.style.background = data.enabled ? "var(--ok)" : "var(--warn)";
+  txt.textContent = data.enabled
+    ? `on - next run ${data.next || "unknown"} (last ${data.last || "never"})`
+    : `PAUSED - it will not run (last ${data.last || "never"})`;
+  btn.textContent = data.enabled ? "Pause" : "Resume";
+  btn.style.display = "";
+}
+
+async function toggleSchedule() {
+  const btn = document.getElementById("sched-btn");
+  btn.disabled = true;
+  document.getElementById("sched-txt").textContent = "asking Windows...";
+  const r = await fetch("/api/schedule", {method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({enable: !(SCHED && SCHED.enabled)})});
+  await drawSchedule(await r.json());
+  btn.disabled = false;
+}
+
+fetch("/api/schedule").then(r => r.json()).then(drawSchedule);
+refresh();
+setInterval(refresh, 1800);
+</script>
+</body>
+</html>

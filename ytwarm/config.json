@@ -1,0 +1,157 @@
+{
+  "chrome_channel": "chrome",
+  "mute_audio": true,
+  "interaction_chance": 0.12,
+  "gap_minutes": [
+    4,
+    20
+  ],
+  "hide_window": false,
+  "skip_day_chance": 0.2,
+  "watch_seconds": [
+    40,
+    120
+  ],
+  "shorts_per_session": [
+    4,
+    8
+  ],
+  "niches": {
+    "A": {
+      "label": "Niche A - reddit stories",
+      "keywords": [
+        "reddit stories narrated",
+        "aita reddit stories",
+        "am i the asshole reddit narration",
+        "tifu reddit story",
+        "reddit revenge stories",
+        "pro revenge reddit stories",
+        "petty revenge reddit",
+        "malicious compliance stories",
+        "entitled parents reddit",
+        "choosing beggars reddit",
+        "reddit cheating stories",
+        "reddit relationship advice stories",
+        "reddit confession stories",
+        "askreddit scary stories",
+        "reddit wedding drama story",
+        "family drama reddit stories",
+        "toxic in laws reddit story",
+        "reddit update stories",
+        "best of reddit stories",
+        "reddit drama storytime",
+        "minecraft parkour reddit stories",
+        "subway surfers reddit stories",
+        "text to speech reddit stories",
+        "reddit story time animated",
+        "reddit horrible bosses stories"
+      ]
+    },
+    "B": {
+      "label": "Niche B - fact shorts",
+      "keywords": [
+        "today i learned facts",
+        "did you know facts",
+        "interesting facts in 60 seconds",
+        "common misconceptions debunked",
+        "random facts you didn't know",
+        "mind blowing facts",
+        "why does that happen science",
+        "science facts explained simply",
+        "quick science explainer",
+        "everyday things explained",
+        "how does it actually work",
+        "human body facts",
+        "brain facts explained",
+        "psychology facts",
+        "animal facts you didn't know",
+        "space facts explained",
+        "ocean facts",
+        "weird history facts",
+        "history you were taught wrong",
+        "food facts you didn't know",
+        "technology explained simply",
+        "strange facts about earth",
+        "whiteboard animation explainer",
+        "doodle animation facts",
+        "stick figure explainer video"
+      ]
+    },
+    "C": {
+      "label": "Niche C - finance",
+      "keywords": [
+        "index fund explained",
+        "personal budget tips",
+        "credit score explained",
+        "side income ideas",
+        "how inflation works"
+      ]
+    }
+  },
+  "profiles": [
+    {
+      "profile_id": "ch1_tech",
+      "label": "Channel 1",
+      "channel_name": "",
+      "niche": "A",
+      "user_data_dir": "profiles/ch1_tech",
+      "enabled": false,
+      "proxy": null,
+      "daily_budget": {
+        "min_minutes": 8,
+        "max_minutes": 18,
+        "min_actions": 3,
+        "max_actions": 6,
+        "sessions_per_day": 2
+      }
+    },
+    {
+      "profile_id": "ch2_tech",
+      "label": "Channel 2",
+      "channel_name": "",
+      "niche": "A",
+      "user_data_dir": "profiles/ch2_tech",
+      "enabled": true,
+      "proxy": null,
+      "daily_budget": {
+        "min_minutes": 8,
+        "max_minutes": 18,
+        "min_actions": 3,
+        "max_actions": 6,
+        "sessions_per_day": 2
+      }
+    },
+    {
+      "profile_id": "ch3_gaming",
+      "label": "Channel 3",
+      "channel_name": "",
+      "niche": "B",
+      "user_data_dir": "profiles/ch3_gaming",
+      "enabled": false,
+      "proxy": null,
+      "daily_budget": {
+        "min_minutes": 8,
+        "max_minutes": 16,
+        "min_actions": 3,
+        "max_actions": 5,
+        "sessions_per_day": 2
+      }
+    },
+    {
+      "profile_id": "ch4_finance",
+      "label": "Channel 4",
+      "channel_name": "",
+      "niche": "C",
+      "user_data_dir": "profiles/ch4_finance",
+      "enabled": false,
+      "proxy": null,
+      "daily_budget": {
+        "min_minutes": 8,
+        "max_minutes": 16,
+        "min_actions": 3,
+        "max_actions": 5,
+        "sessions_per_day": 2
+      }
+    }
+  ]
+}
